@@ -34,6 +34,14 @@ public class BotStarter {
     private Field gameField;
     private int myId;
     private final Random rand = new Random();
+    private final ArrayList<Move> cornerList = new ArrayList<>();
+
+    public BotStarter() {
+	cornerList.add(new Move(0, 0));
+	cornerList.add(new Move(0, 2));
+	cornerList.add(new Move(2, 0));
+	cornerList.add(new Move(2, 2));
+    }
 
     /**
      * Makes a turn. Edit this method to make your bot smarter. Currently does only random moves.
@@ -148,18 +156,34 @@ public class BotStarter {
 		}
 	    }
 	}
-
+/*
 	// Center: A player marks the center.
 	if (tttField.isValidMove(1, 1)) {
 	    return new Move(1, 1);
 	}
-	
-	// TODO: Opposite corner: If the opponent is in the corner, the player plays the opposite corner.
-	
-	// TODO: Empty corner: The player plays in a corner square. 
-	
-	// TODO: Empty side: The player plays in a middle square on any of the 4 sides.
 
+	// Opposite corner: If the opponent is in the corner, the player plays the opposite corner.
+	Move corner, move;
+	for (int m = 0; m < cornerList.size(); m++) {
+	    corner = cornerList.get(m);
+	    if (tttField.isOccupiedBy(corner.mX, corner.mY, oppId)) {
+		move = new Move(2 - corner.mX, 2 - corner.mY); // opposite corner
+		if (tttField.isValidMove(move.mX, move.mY)) {
+		    return move;
+		}
+	    }
+	}
+
+	// Empty corner: The player plays in a corner square.
+	for (int m = 0; m < cornerList.size(); m++) {
+	    corner = cornerList.get(m);
+	    if (tttField.isValidMove(corner.mX, corner.mY)) {
+		return corner;
+	    }
+	}
+
+	// TODO: Empty side: The player plays in a middle square on any of the 4 sides.
+*/
 	return null;
     }
 

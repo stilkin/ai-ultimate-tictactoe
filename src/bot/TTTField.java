@@ -23,6 +23,10 @@ public class TTTField {
     public void removeMark(final int x, final int y) {
 	mBoard[x][y] = 0;
     }
+    
+    public boolean isOccupiedBy(final int x, final int y, final int playerId) {
+	return (mBoard[x][y] == playerId);
+    }
 
     /*
      * (re)set the board
