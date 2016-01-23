@@ -50,22 +50,23 @@ public class BotStarter {
 	int my = gameField.getActiveMicroboardY();
 
 	if (mx < 0 || my < 0) { // WE GET TO CHOOSE THE BOARD
-
 	    // get big board, play on big board
-	    smallField.setBoard(gameField.getMacroBoard());
-
+	    smallField.setBoard(gameField.getValidMacroBoard());
+	    System.err.println(smallField.toString());
 	    Move myMove = playField(smallField);
+
 	    if (myMove == null) { // nothing useful
+		final ArrayList<Move> validFields = smallField.getAvailableMoves();
 		// default behavior: play random move
-		final ArrayList<Move> validMoves = smallField.getAvailableMoves();
-		myMove = validMoves.get(rand.nextInt(validMoves.size())); /* get random move from available moves */
-		// TODO: full fields with draw also give 0 -> filter them out!
+		myMove = validFields.get(rand.nextInt(validFields.size())); /* get random move from available moves */
 	    }
 	    mx = myMove.mX;
 	    my = myMove.mY;
+	    System.err.println("Choosing microboard: " + mx + " " + my);
+	} else {
+	    System.err.println("Playing on microboard: " + mx + " " + my);
 	}
 
-	System.err.println("Playing on microboard: " + mx + " " + my);
 	smallField.setBoard(gameField.getMicroBoard(mx, my));
 
 	// PLAY ON THE SMALL FIELD
@@ -76,7 +77,7 @@ public class BotStarter {
 	    myMove = validMoves.get(rand.nextInt(validMoves.size()));
 	}
 
-	System.err.println("Local move: " + mx + " " + my);
+	System.err.println("Local move: " + myMove.mX + " " + myMove.mY);
 	// translate to big board
 	mx = mx * 3 + myMove.mX;
 	my = my * 3 + myMove.mY;
@@ -85,6 +86,8 @@ public class BotStarter {
 
     }
 
+    // TODO: GET LISTS OF VALID MOVES AND THEN CHOOSE BETTER ONE BASED ON MACRO GAME
+
     private Move playField(final TTTField tttField) {
 	// Win: If the player has two in a row, they can place a third to get three in a row.
 	for (int y = 0; y < 3; y++) {
@@ -92,6 +95,7 @@ public class BotStarter {
 		if (tttField.isValidMove(x, y)) {
 		    tttField.setMark(x, y, myId);
 		    if (tttField.hasThreeInARow(myId)) {
+			System.err.println("Going for a win on " + x + " " + y);
 			return new Move(x, y);
 		    }
 		    tttField.removeMark(x, y);
@@ -105,27 +109,59 @@ public class BotStarter {
 		if (tttField.isValidMove(x, y)) {
 		    tttField.setMark(x, y, oppId);
 		    if (tttField.hasThreeInARow(oppId)) {
+			System.err.println("Preventing opponent win on " + x + " " + y);
 			return new Move(x, y);
 		    }
 		    tttField.removeMark(x, y);
 		}
 	    }
 	}
+
+	// Fork: Create an opportunity where the player has two threats to win (two non-blocked lines of 2).
+	// TODO: dont know how to do that
+	for (int y = 2; y >= 0; y--) {
+	    for (int x = 2; x >= 0; x--) {
+		if (tttField.isValidMove(x, y)) {
+		    tttField.setMark(x, y, myId);
+		    if (tttField.hasSequenceInARow(myId, 2)) {
+			return new Move(x, y);
+		    }
+		    tttField.removeMark(x, y);
+		}
+	    }
+	}
+
+	/**
+	 * Blocking an opponent's fork: Option 1: The player should create two in a row to force the opponent into defending, as long as it doesn't result in them creating a fork.
+	 * For example, if "X" has a corner, "O" has the center, and "X" has the opposite corner as well, "O" must not play a corner in order to win. (Playing a corner in this
+	 * scenario creates a fork for "X" to win.) Option 2: If there is a configuration where the opponent can fork, the player should block that fork.
+	 */
+	// TODO: don't know how to do that
+	for (int y = 2; y >= 0; y--) {
+	    for (int x = 2; x >= 0; x--) {
+		if (tttField.isValidMove(x, y)) {
+		    tttField.setMark(x, y, oppId);
+		    if (tttField.hasSequenceInARow(oppId, 2)) {
+			return new Move(x, y);
+		    }
+		    tttField.removeMark(x, y);
+		}
+	    }
+	}
+
+	// Center: A player marks the center.
+	if (tttField.isValidMove(1, 1)) {
+	    return new Move(1, 1);
+	}
+	
+	// TODO: Opposite corner: If the opponent is in the corner, the player plays the opposite corner.
+	
+	// TODO: Empty corner: The player plays in a corner square. 
+	
+	// TODO: Empty side: The player plays in a middle square on any of the 4 sides.
+
 	return null;
     }
-
-    /*
-     * 
-     *  Fork: Create an opportunity where the player has two threats to win (two non-blocked lines of 2). Blocking an opponent's fork: Option 1: The player
-     * should create two in a row to force the opponent into defending, as long as it doesn't result in them creating a fork. For example, if "X" has a corner, "O" has the center,
-     * and "X" has the opposite corner as well, "O" must not play a corner in order to win. (Playing a corner in this scenario creates a fork for "X" to win.) Option 2: If there is
-     * a configuration where the opponent can fork, the player should block that fork. Center: A player marks the center. (If it is the first move of the game, playing on a corner
-     * gives "O" more opportunities to make a mistake and may therefore be the better choice; however, it makes no difference between perfect players.) Opposite corner: If the
-     * opponent is in the corner, the player plays the opposite corner. Empty corner: The player plays in a corner square. Empty side: The player plays in a middle square on any of
-     * the 4 sides.
-     * 
-     * 
-     */
 
     public static void main(String[] args) {
 	final BotParser parser = new BotParser(new BotStarter());

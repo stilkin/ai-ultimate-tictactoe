@@ -66,9 +66,24 @@ public class Field {
 	}
 	return microBoard;
     }
-    
-    public int[][] getMacroBoard() {
-	return mMacroboard;
+
+    public int[][] getValidMacroBoard() {
+	final int[][] validMacroBoard = new int[3][3];
+	final TTTField smallField = new TTTField();
+	for (int i = 0; i < 3; i++) {
+	    for (int j = 0; j < 3; j++) {
+		validMacroBoard[i][j] = mMacroboard[i][j];
+		if (validMacroBoard[i][j] == 0) {
+		    smallField.setBoard(getMicroBoard(i, j));
+		    if (smallField.isFull()) {
+			validMacroBoard[i][j] = 9; // TODO: what value? enemy id?
+			System.err.println("Disabling full microboard: " + i + " " + j);
+		    }
+		}
+	    }
+	}
+
+	return validMacroBoard;
     }
 
     /* JIMS CODE */

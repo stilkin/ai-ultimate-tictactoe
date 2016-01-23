@@ -34,15 +34,50 @@ public class TTTField {
 	    }
 	}
     }
+    
+    
+    public boolean isFull() {
+	for (int y = 0; y < ROWS; y++) {
+	    for (int x = 0; x < COLS; x++) {
+		if (mBoard[x][y] == 0) {
+		    return false;
+		}
+	    }
+	}
+
+	return true;
+    }
+
+    public ArrayList<Move> getAvailableMoves() {
+	final ArrayList<Move> moves = new ArrayList<Move>();
+
+	for (int y = 0; y < ROWS; y++) {
+	    for (int x = 0; x < COLS; x++) {
+		if (mBoard[x][y] <= 0) {
+		    moves.add(new Move(x, y));
+		}
+	    }
+	}
+
+	return moves;
+    }
+    
 
     public boolean hasThreeInARow(final int player) {
-	if (hasThreeHorizontal(player, 3) >= 0) {
+	return hasSequenceInARow(player, 3);
+    }
+    
+    
+    /* four in a row methods */
+
+    public boolean hasSequenceInARow(final int player, final int n) {
+	if (hasHorizontalSequence(player, n) >= 0) {
 	    return true;
 	}
-	if (hasThreeVertical(player, 3) >= 0) {
+	if (hasVerticalSequence(player, n) >= 0) {
 	    return true;
 	}
-	if (hasThreeDiagonal(player, 3)) {
+	if (hasDiagonalSequence(player, n)) {
 	    // warning: putting this one first may have negative impact on performance
 	    return true;
 	}
@@ -50,7 +85,7 @@ public class TTTField {
 	return false;
     }
 
-    public int hasThreeVertical(final int player, final int n) {
+    public int hasVerticalSequence(final int player, final int n) {
 	for (int x = 0; x < COLS; x++) {
 	    int count = 0;
 	    for (int y = 0; y < ROWS; y++) {
@@ -67,7 +102,7 @@ public class TTTField {
 	return -1;
     }
 
-    public int hasThreeHorizontal(final int player, final int n) {
+    public int hasHorizontalSequence(final int player, final int n) {
 	for (int y = 0; y < ROWS; y++) {
 	    int count = 0;
 	    for (int x = 0; x < COLS; x++) {
@@ -84,7 +119,7 @@ public class TTTField {
 	return -1;
     }
 
-    public boolean hasThreeDiagonal(final int player, final int n) {
+    public boolean hasDiagonalSequence(final int player, final int n) {
 
 	// check one diagonal \\
 	for (int i = 0; i <= COLS - n; i++) {
@@ -137,31 +172,22 @@ public class TTTField {
 	}
 	return false;
     }
-
-    public boolean isFull() {
+    
+    @Override
+    public String toString() {
+	String prettyStr = " ";
+	int counter = 0;
 	for (int y = 0; y < ROWS; y++) {
 	    for (int x = 0; x < COLS; x++) {
-		if (mBoard[x][y] == 0) {
-		    return false;
+		if (counter > 0) {
+		    prettyStr += " ";
 		}
+		prettyStr += mBoard[x][y];
+		counter++;
 	    }
+	    prettyStr += '\n';
 	}
-
-	return true;
-    }
-
-    public ArrayList<Move> getAvailableMoves() {
-	final ArrayList<Move> moves = new ArrayList<Move>();
-
-	for (int y = 0; y < ROWS; y++) {
-	    for (int x = 0; x < COLS; x++) {
-		if (mBoard[x][y] <= 0) {
-		    moves.add(new Move(x, y));
-		}
-	    }
-	}
-
-	return moves;
+	return prettyStr;
     }
 
     /* Jims code */
