@@ -6,17 +6,19 @@ public class TTTField {
     private final int COLS = 3, ROWS = 3;
     private final int[][] mBoard = new int[COLS][ROWS];
 
-    /*
-     * Put a mark on the board
+    /**
+     * Put a mark on the board. NO CHECKING IS DONE
      */
     public void setMark(final int x, final int y, final int mark) {
-	if (mBoard[x][y] == 0) {
-	    mBoard[x][y] = mark;
-	}
+	mBoard[x][y] = mark;
     }
 
-    /*
-     * Put a mark on the board
+    public boolean isValidMove(final int x, final int y) {
+	return (mBoard[x][y] == 0);
+    }
+
+    /**
+     * Remove a mark from the board. NO CHECKING IS DONE
      */
     public void removeMark(final int x, final int y) {
 	mBoard[x][y] = 0;
@@ -153,7 +155,7 @@ public class TTTField {
 
 	for (int y = 0; y < ROWS; y++) {
 	    for (int x = 0; x < COLS; x++) {
-		if (mBoard[x][y] == 0) {
+		if (mBoard[x][y] <= 0) {
 		    moves.add(new Move(x, y));
 		}
 	    }

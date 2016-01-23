@@ -44,7 +44,7 @@ public class BotStarter {
 	gameField = field;
 	myId = BotParser.mBotId;
 	System.err.println(field.toString());
-	
+
 	smallField.clearBoard(); // JIC
 	int mx = gameField.getActiveMicroboardX();
 	int my = gameField.getActiveMicroboardY();
@@ -59,6 +59,7 @@ public class BotStarter {
 		// default behavior: play random move
 		final ArrayList<Move> validMoves = smallField.getAvailableMoves();
 		myMove = validMoves.get(rand.nextInt(validMoves.size())); /* get random move from available moves */
+		// TODO: full fields with draw also give 0 -> filter them out!
 	    }
 	    mx = myMove.mX;
 	    my = myMove.mY;
@@ -70,14 +71,15 @@ public class BotStarter {
 	// PLAY ON THE SMALL FIELD
 	Move myMove = playField(smallField);
 	if (myMove == null) {
-	 // default behavior: play random move
+	    // default behavior: play random move
 	    final ArrayList<Move> validMoves = smallField.getAvailableMoves();
 	    myMove = validMoves.get(rand.nextInt(validMoves.size()));
 	}
 
+	System.err.println("Local move: " + mx + " " + my);
 	// translate to big board
-	mx = mx*3 + myMove.mX;
-	my = my*3 + myMove.mY;
+	mx = mx * 3 + myMove.mX;
+	my = my * 3 + myMove.mY;
 	System.err.println("Putting move: " + mx + " " + my);
 	return new Move(mx, my);
 
@@ -87,20 +89,34 @@ public class BotStarter {
 	// Win: If the player has two in a row, they can place a third to get three in a row.
 	for (int y = 0; y < 3; y++) {
 	    for (int x = 0; x < 3; x++) {
-		tttField.setMark(x, y, myId);
-		if (tttField.hasThreeInARow(myId)) {
-		    return new Move(x, y);
+		if (tttField.isValidMove(x, y)) {
+		    tttField.setMark(x, y, myId);
+		    if (tttField.hasThreeInARow(myId)) {
+			return new Move(x, y);
+		    }
+		    tttField.removeMark(x, y);
 		}
 	    }
 	}
-
+	// Block: If the opponent has two in a row, the player must play the third themselves to block the opponent.
+	final int oppId = 3 - myId;
+	for (int y = 0; y < 3; y++) {
+	    for (int x = 0; x < 3; x++) {
+		if (tttField.isValidMove(x, y)) {
+		    tttField.setMark(x, y, oppId);
+		    if (tttField.hasThreeInARow(oppId)) {
+			return new Move(x, y);
+		    }
+		    tttField.removeMark(x, y);
+		}
+	    }
+	}
 	return null;
     }
 
     /*
      * 
-     * Win: If the player has two in a row, they can place a third to get three in a row. Block: If the opponent has two in a row, the player must play the third themselves to
-     * block the opponent. Fork: Create an opportunity where the player has two threats to win (two non-blocked lines of 2). Blocking an opponent's fork: Option 1: The player
+     *  Fork: Create an opportunity where the player has two threats to win (two non-blocked lines of 2). Blocking an opponent's fork: Option 1: The player
      * should create two in a row to force the opponent into defending, as long as it doesn't result in them creating a fork. For example, if "X" has a corner, "O" has the center,
      * and "X" has the opposite corner as well, "O" must not play a corner in order to win. (Playing a corner in this scenario creates a fork for "X" to win.) Option 2: If there is
      * a configuration where the opponent can fork, the player should block that fork. Center: A player marks the center. (If it is the first move of the game, playing on a corner
