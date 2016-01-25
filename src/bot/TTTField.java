@@ -3,53 +3,58 @@ package bot;
 import java.util.ArrayList;
 
 public class TTTField {
-    private final int COLS = 3, ROWS = 3;
-    private final int[][] mBoard = new int[COLS][ROWS];
+    private final int MAX = 3;
+    private final int COLS = MAX, ROWS = MAX;
+    private final int[][] gameBoard = new int[COLS][ROWS];
+    private int totalMarks = 0;
 
     /**
      * Put a mark on the board. NO CHECKING IS DONE
      */
     public void setMark(final int x, final int y, final int mark) {
-	mBoard[x][y] = mark;
+	gameBoard[x][y] = mark;
+	totalMarks++;
     }
 
     public boolean isValidMove(final int x, final int y) {
-	return (mBoard[x][y] == 0);
+	return (gameBoard[x][y] == 0);
     }
 
     /**
      * Remove a mark from the board. NO CHECKING IS DONE
      */
     public void removeMark(final int x, final int y) {
-	mBoard[x][y] = 0;
+	if (gameBoard[x][y] != 0) {
+	    totalMarks--;
+	}
+	gameBoard[x][y] = 0;
     }
-    
-    public boolean isOccupiedBy(final int x, final int y, final int playerId) {
-	return (mBoard[x][y] == playerId);
+
+    public boolean hasMark(final int x, final int y, final int mark) {
+	return (gameBoard[x][y] == mark);
+    }
+
+    public int getMark(final int x, final int y) {
+	return gameBoard[x][y];
     }
 
     /*
      * (re)set the board
      */
     public void setBoard(final int[][] newBoard) {
+	totalMarks = 0;
 	for (int y = 0; y < ROWS; y++) {
 	    for (int x = 0; x < COLS; x++) {
-		mBoard[x][y] = newBoard[x][y];
-	    }
-	}
-    }
-    
-    
-    public boolean isFull() {
-	for (int y = 0; y < ROWS; y++) {
-	    for (int x = 0; x < COLS; x++) {
-		if (mBoard[x][y] == 0) {
-		    return false;
+		gameBoard[x][y] = newBoard[x][y];
+		if (gameBoard[x][y] != 0) {
+		    totalMarks++;
 		}
 	    }
 	}
+    }
 
-	return true;
+    public boolean isFull() {
+	return (totalMarks == ROWS * COLS);
     }
 
     public ArrayList<Move> getAvailableMoves() {
@@ -57,7 +62,7 @@ public class TTTField {
 
 	for (int y = 0; y < ROWS; y++) {
 	    for (int x = 0; x < COLS; x++) {
-		if (mBoard[x][y] <= 0) {
+		if (gameBoard[x][y] <= 0) {
 		    moves.add(new Move(x, y));
 		}
 	    }
@@ -65,37 +70,34 @@ public class TTTField {
 
 	return moves;
     }
-    
 
     public boolean hasThreeInARow(final int player) {
-	return hasSequenceInARow(player, 3);
-    }
-    
-    
-    /* four in a row methods */
-
-    public boolean hasSequenceInARow(final int player, final int n) {
-	if (hasHorizontalSequence(player, n) >= 0) {
+	if (hasHorizontalThree(player) >= 0) {
 	    return true;
 	}
-	if (hasVerticalSequence(player, n) >= 0) {
+	if (hasVerticaThree(player) >= 0) {
 	    return true;
 	}
-	if (hasDiagonalSequence(player, n)) {
-	    // warning: putting this one first may have negative impact on performance
+	if (hasDiagonalThree(player) >= 0) {
 	    return true;
 	}
 
 	return false;
     }
 
-    public int hasVerticalSequence(final int player, final int n) {
+    /**
+     * Returns the first col for which this player has 3 in a row, -1 if none are present
+     * 
+     * @param player
+     * @return
+     */
+    public int hasVerticaThree(final int player) {
 	for (int x = 0; x < COLS; x++) {
 	    int count = 0;
 	    for (int y = 0; y < ROWS; y++) {
-		if (mBoard[x][y] == player) {
+		if (gameBoard[x][y] == player) {
 		    count++;
-		    if (count >= n) {
+		    if (count == MAX) {
 			return x;
 		    }
 		} else {
@@ -106,14 +108,20 @@ public class TTTField {
 	return -1;
     }
 
-    public int hasHorizontalSequence(final int player, final int n) {
+    /**
+     * Returns the first row for which this player has 3 in a row, -1 if none are present
+     * 
+     * @param player
+     * @return
+     */
+    public int hasHorizontalThree(final int player) {
 	for (int y = 0; y < ROWS; y++) {
 	    int count = 0;
 	    for (int x = 0; x < COLS; x++) {
-		if (mBoard[x][y] == player) {
+		if (gameBoard[x][y] == player) {
 		    count++;
-		    if (count >= n) {
-			return y;
+		    if (count == MAX) {
+			return x;
 		    }
 		} else {
 		    count = 0;
@@ -123,60 +131,132 @@ public class TTTField {
 	return -1;
     }
 
-    public boolean hasDiagonalSequence(final int player, final int n) {
-
-	// check one diagonal \\
-	for (int i = 0; i <= COLS - n; i++) {
-	    if (checkNWSEDiagonal(player, i, 0, n))
-		return true;
-	}
-	for (int j = 1; j <= ROWS - n; j++) {
-	    if (checkNWSEDiagonal(player, 0, j, n))
-		return true;
-	}
-
-	// check other diagonal //
-	for (int i = 0; i <= COLS - n; i++) {
-	    if (checkNESWDiagonal(player, -i, 0, n))
-		return true;
-	}
-	for (int j = 1; j <= ROWS - n; j++) {
-	    if (checkNESWDiagonal(player, 0, j, n))
-		return true;
-	}
-	return false;
-    }
-
-    private boolean checkNWSEDiagonal(final int player, final int i, final int j, final int n) {
-	int count = 0;
-	for (int x = i, y = j; x < COLS && y < ROWS; x++, y++) {
-	    if (mBoard[x][y] == player) {
-		count++;
-		if (count >= n) {
-		    return true;
+    /**
+     * Returns the number 3 if either diagonal has 3 in a row, -1 if none are present
+     * 
+     * @param player
+     * @return
+     */
+    public int hasDiagonalThree(final int player) {
+	int countNWSE = 0; // check one diagonal -> \
+	int countNESW = 0; // check other diagonal -> /
+	for (int i = 0; i < MAX; i++) {
+	    if (gameBoard[i][i] == player) {
+		countNWSE++;
+		if (countNWSE == MAX) {
+		    return i;
 		}
 	    } else {
-		count = 0;
+		countNWSE = 0;
+	    }
+	    if (gameBoard[(MAX - 1) - i][i] == player) {
+		countNESW++;
+		if (countNESW == MAX) {
+		    return i;
+		}
+	    } else {
+		countNESW = 0;
 	    }
 	}
+	return -1;
+    }
+
+    /*
+     * Checks if the field has some in line (with gaps)
+     */
+    public boolean hasSomeInLine(final int player, final int max) {
+
+	if (hasSomeOnAVertical(player, max) >= 0) {
+	    return true;
+	}
+
+	if (hasSomeOnAHorizontal(player, max) >= 0) {
+	    return true;
+	}
+
+	if (hasSomeOnADiagonal(player, max) >= 0) {
+	    return true;
+	}
+
 	return false;
     }
 
-    private boolean checkNESWDiagonal(final int player, final int i, final int j, final int n) {
-	int count = 0;
-	for (int x = (COLS - 1) + i, y = j; x >= 0 && y < ROWS; x--, y++) {
-	    if (mBoard[x][y] == player) {
-		count++;
-		if (count >= n) {
-		    return true;
+    /**
+     * Returns the first col for which this player has 3 in a row, -1 if none are present
+     * 
+     * @param player
+     * @return
+     */
+    public int hasSomeOnAVertical(final int player, final int max) {
+	for (int x = 0; x < COLS; x++) {
+	    int count = 0;
+	    for (int y = 0; y < ROWS; y++) {
+		if (gameBoard[x][y] == player) {
+		    count++;
+		    if (count >= max) {
+			return x;
+		    }
+		} else if (gameBoard[x][y] == 3 - player) { // blocked by opponent
+		    count = 0;
 		}
-	    } else {
-		count = 0;
 	    }
 	}
-	return false;
+	return -1;
     }
-    
+
+    /**
+     * Returns the first row for which this player has 3 in a row, -1 if none are present
+     * 
+     * @param player
+     * @return
+     */
+    public int hasSomeOnAHorizontal(final int player, final int max) {
+	for (int y = 0; y < ROWS; y++) {
+	    int count = 0;
+	    for (int x = 0; x < COLS; x++) {
+		if (gameBoard[x][y] == player) {
+		    count++;
+		    if (count >= max) {
+			return x;
+		    }
+		} else if (gameBoard[x][y] == 3 - player) { // blocked by opponent
+		    count = 0;
+		}
+	    }
+	}
+	return -1;
+    }
+
+    /**
+     * Returns the number 3 if either diagonal has 3 in a row, -1 if none are present
+     * 
+     * @param player
+     * @return
+     */
+    public int hasSomeOnADiagonal(final int player, final int max) {
+	int countNWSE = 0; // check one diagonal -> \
+	int countNESW = 0; // check other diagonal -> /
+	for (int i = 0; i < MAX; i++) {
+	    if (gameBoard[i][i] == player) {
+		countNWSE++;
+		if (countNWSE >= max) {
+		    return i;
+		}
+	    } else if (gameBoard[i][i] == 3 - player) { // blocked by opponent
+		countNWSE = 0;
+	    }
+	    if (gameBoard[(MAX - 1) - i][i] == player) {
+		countNESW++;
+		if (countNESW >= max) {
+		    return i;
+		}
+	    } else if (gameBoard[(MAX - 1) - i][i] == 3 - player) { // blocked by opponent
+		countNESW = 0;
+	    }
+	}
+	return -1;
+    }
+
     @Override
     public String toString() {
 	String prettyStr = " ";
@@ -186,7 +266,7 @@ public class TTTField {
 		if (counter > 0) {
 		    prettyStr += " ";
 		}
-		prettyStr += mBoard[x][y];
+		prettyStr += gameBoard[x][y];
 		counter++;
 	    }
 	    prettyStr += '\n';
@@ -197,9 +277,10 @@ public class TTTField {
     /* Jims code */
 
     public void clearBoard() {
+	totalMarks = 0;
 	for (int x = 0; x < COLS; x++) {
 	    for (int y = 0; y < ROWS; y++) {
-		mBoard[x][y] = 0;
+		gameBoard[x][y] = 0;
 	    }
 	}
     }

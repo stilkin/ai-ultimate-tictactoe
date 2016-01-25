@@ -23,20 +23,55 @@ package bot;
  * Stores a move.
  * 
  * @author Jim van Eeden <jim@starapple.nl>, Joost de Meij <joost@starapple.nl>
+ * @author stilkin (added hashcode and equals)
  */
 
 public class Move {
-	int mX, mY;
-	
-	public Move() {
-	}
-	
-	public Move(int x, int y) {
-		mX = x;
-		mY = y;
-	}
-	
-	public int getX() { return mX; }
-	public int getY() { return mY; }
-	
+    int mX, mY;
+
+    public Move() {}
+
+    public Move(int x, int y) {
+	mX = x;
+	mY = y;
+    }
+
+    public int getX() {
+	return mX;
+    }
+
+    public int getY() {
+	return mY;
+    }
+
+    @Override
+    public String toString() {
+	return String.format("(%d,%d)", mX, mY);
+    }
+
+    @Override
+    public int hashCode() {
+	final int prime = 31;
+	int result = 1;
+	result = prime * result + mX;
+	result = prime * result + mY;
+	return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+	if (this == obj)
+	    return true;
+	if (obj == null)
+	    return false;
+	if (getClass() != obj.getClass())
+	    return false;
+	Move other = (Move) obj;
+	if (mX != other.mX)
+	    return false;
+	if (mY != other.mY)
+	    return false;
+	return true;
+    }
+
 }

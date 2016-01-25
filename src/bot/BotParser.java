@@ -58,8 +58,12 @@ public class BotParser {
 		mField.parseGameData(parts[2], parts[3]);
 	    } else if (parts[0].equals("action")) {
 		if (parts[1].equals("move")) { /* move requested */
-		    Move move = this.bot.makeTurn(mField);
-		    System.out.println("place_move " + move.getX() + " " + move.getY());
+		    final Move move = this.bot.makeTurn(mField);
+		    if (move != null) {
+			System.out.println("place_move " + move.getX() + " " + move.getY());
+		    } else {
+			System.out.println("place_move 0 0");
+		    }
 		}
 	    } else {
 		System.out.println("unknown command");
