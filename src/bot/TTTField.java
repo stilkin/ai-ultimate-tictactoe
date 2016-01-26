@@ -19,6 +19,10 @@ public class TTTField {
     public boolean isValidMove(final int x, final int y) {
 	return (gameBoard[x][y] == 0);
     }
+    
+    public boolean isValidMove(final Move move) {
+	return (gameBoard[move.mX][move.mY] == 0);
+    }
 
     /**
      * Remove a mark from the board. NO CHECKING IS DONE
@@ -70,7 +74,7 @@ public class TTTField {
 
 	return moves;
     }
-
+    
     public boolean hasThreeInARow(final int player) {
 	if (hasHorizontalThree(player) >= 0) {
 	    return true;

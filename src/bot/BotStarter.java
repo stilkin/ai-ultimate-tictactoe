@@ -37,6 +37,7 @@ public class BotStarter {
     private final TTTField macroField = new TTTField();
     private Field gameField;
     private int myId;
+    private int oppId;
     private final Random rand = new Random();
     private final List<Move> cornerList = new ArrayList<Move>();
 
@@ -57,36 +58,62 @@ public class BotStarter {
 	// initialization
 	gameField = field;
 	myId = BotParser.mBotId;
-	final int oppId = 3 - myId;
+	oppId = 3 - myId;
+
 	int mx, my;
-	System.err.println(field.toString());
+	System.err.println(field.toString()); // debug
 
 	macroField.clearBoard();
 	smallField.clearBoard();
 
-	// get big board, play on big board
+	// get big board
 	macroField.setBoard(gameField.getValidMacroBoard());
 	System.err.println(macroField.toString());
 
 	mx = gameField.getActiveMicroboardX();
 	my = gameField.getActiveMicroboardY();
 
-	if (mx < 0 || my < 0) { // this means we get to choose the board
-	    final List<Move> myMacroMoveList = getOrderedMoveList(macroField, myId); // my moves
+	if (mx >= 0 && my >= 0) { // play on a designated small field
+	    System.err.println("Playing on microboard: " + mx + " " + my);
+	    smallField.setBoard(gameField.getMicroBoard(mx, my));
+	    final Move safeMove = getSafeMove(smallField, myId, oppId);
+	    if (safeMove != null) { // this is ideal
+		System.err.println(smallField.toString());
+		System.err.println("Keepin' it safe: " + safeMove.mX + " " + safeMove.mY);
+		return translateMovetoGlobal(mx, my, safeMove);
+	    }
+	    // TODO: refactor else
+	} else { // this means we get to choose the small field
+	    final List<Move> myMacroMoveList = getOrderedMoveList(macroField, myId); // my moves on the big field
 	    if (myMacroMoveList.size() < 1) {
 		System.err.println("ERROR: NO MACRO MOVES POSSIBLE");
 		return null;
 	    }
+	    // look for safe options
+	    Move potentialBoardCoords;
+	    for (int m = 0; m < myMacroMoveList.size(); m++) {
+		potentialBoardCoords = myMacroMoveList.get(m);
+		smallField.setBoard(gameField.getMicroBoard(potentialBoardCoords.mX, potentialBoardCoords.mY));
+		final Move safeMove = getSafeMove(smallField, myId, oppId);
+		if (safeMove != null) { // this is ideal
+		    mx = potentialBoardCoords.mX;
+		    my = potentialBoardCoords.mY;
+		    System.err.println("Choosing microboard: " + mx + " " + my);
+		    System.err.println(smallField.toString());
+		    System.err.println("Keepin' it safe: " + safeMove.mX + " " + safeMove.mY);
+		    return translateMovetoGlobal(mx, my, safeMove);
+		}
+	    }
+
+	    // set a fallback option
 	    final Move boardCoords = myMacroMoveList.get(0);
 	    mx = boardCoords.mX;
 	    my = boardCoords.mY;
-
 	    System.err.println("Choosing microboard: " + mx + " " + my);
-	} else {
-	    System.err.println("Playing on microboard: " + mx + " " + my);
+	    // TODO: choose better?
 	}
 
-	// PLAY ON THE SMALL FIELD
+	// if we are here, we are not playing safe moves ^^
 	smallField.setBoard(gameField.getMicroBoard(mx, my));
 	System.err.println(smallField.toString());
 
@@ -101,23 +128,22 @@ public class BotStarter {
 	localMove = localMoveList.get(0); // default option
 
 	if (localMoveList.size() > 1) { // multiple options
-
+	    System.err.println(localMoveList.toString());
 	    Move potentialMove;
 	    final TTTField nextField = new TTTField();
-	    // look for safe moves
+	    // TODO: CLEAN THIS STUFF UP
+
+	    // look for moves that do not let enemy choose // TODO: is this a good priority?
 	    for (int m = 0; m < localMoveList.size(); m++) {
 		potentialMove = localMoveList.get(m);
 		nextField.setBoard(gameField.getMicroBoard(potentialMove.mX, potentialMove.mY)); // future board
 		final int mark = macroField.getMark(potentialMove.mX, potentialMove.mY);
-		if (mark < 1 && !nextField.isFull() && !nextField.hasSomeInLine(oppId, 2)) {
-		    // field is not won or tied or dangerous
-		    System.err.println("Looks safe: " + potentialMove.mX + " " + potentialMove.mY);
+		if (mark < 1 && !nextField.isFull()) {
+		    // field is not won or tied, so no choosing for enemy
+		    System.err.println("No win or ties: " + potentialMove.mX + " " + potentialMove.mY);
 		    return translateMovetoGlobal(mx, my, potentialMove);
 		}
 	    }
-
-	    // no safe moves available
-	    System.err.println(localMoveList.toString());
 
 	    // look for winning moves
 	    for (int m = 0; m < localMoveList.size(); m++) {
@@ -150,7 +176,6 @@ public class BotStarter {
 	    final List<Move> oppMacroMoveList = getOrderedMoveList(smallField, oppId);
 	    // a lower position in the opposite list is bad news for us
 
-	    
 	    // TODO: do not play in quadrants that opponent can win or choose from
 	    Collections.sort(orderedMoves, new Comparator<Move>() {
 		@Override
@@ -175,6 +200,47 @@ public class BotStarter {
 
 	return translateMovetoGlobal(mx, my, localMove);
 
+    }
+
+    private Move getSafeMove(final TTTField currentField, final int myId, final int oppId) {
+	// get coordinates to fields that have not been won or tied yet
+	final List<Move> blockingMoves = macroField.getAvailableMoves();
+	System.err.println("Moves leading to no choice for enemy: \n\t" + blockingMoves.toString());
+
+	if (blockingMoves.size() > 0) {
+	    final List<Move> safeMoves = new ArrayList<Move>();
+	    Move potentialMove;
+	    final TTTField nextEnemyField = new TTTField();
+	    // look for safe moves
+	    for (int m = 0; m < blockingMoves.size(); m++) {
+		potentialMove = blockingMoves.get(m);
+		if (currentField.isValidMove(potentialMove)) { // is this a move we can make?
+		    nextEnemyField.setBoard(gameField.getMicroBoard(potentialMove.mX, potentialMove.mY)); // board for enemy in next turn
+		    if (!nextEnemyField.hasSomeInLine(oppId, 2)) { // as safe as it gets
+			safeMoves.add(potentialMove);
+		    }
+		}
+	    }
+	    System.err.println("Moves leading to no choice + no win for enemy: \n\t" + safeMoves.toString());
+
+	    if (safeMoves.size() == 0) {
+		// no options
+		return null;
+	    } else if (safeMoves.size() == 1) {
+		// only one choice -> go for it
+		return safeMoves.get(0);
+	    } else { // more than one choice -> YAY
+		// get a sorted move list for this field
+		final List<Move> availableMoves = getOrderedMoveList(currentField, myId);
+		for (int m = 0; m < availableMoves.size(); m++) {
+		    potentialMove = availableMoves.get(m);
+		    if (safeMoves.contains(potentialMove)) {
+			return potentialMove;
+		    }
+		}
+	    }
+	}
+	return null;
     }
 
     /**
@@ -219,7 +285,10 @@ public class BotStarter {
 		    tttField.setMark(x, y, oppId);
 		    if (tttField.hasThreeInARow(oppId)) {
 			System.err.println("Prevent opponent win on " + x + " " + y);
-			moves.add(new Move(x, y));
+			final Move newMove = new Move(x, y);
+			if (!moves.contains(newMove)) {
+			    moves.add(newMove);
+			}
 		    }
 		    tttField.removeMark(x, y);
 		}
@@ -233,7 +302,10 @@ public class BotStarter {
 		if (tttField.isValidMove(x, y)) {
 		    tttField.setMark(x, y, playerId);
 		    if (tttField.hasSomeInLine(playerId, 2)) {
-			moves.add(new Move(x, y));
+			final Move newMove = new Move(x, y);
+			if (!moves.contains(newMove)) {
+			    moves.add(newMove);
+			}
 		    }
 		    tttField.removeMark(x, y);
 		}
@@ -251,7 +323,10 @@ public class BotStarter {
 		if (tttField.isValidMove(x, y)) {
 		    tttField.setMark(x, y, oppId);
 		    if (tttField.hasSomeInLine(oppId, 2)) {
-			moves.add(new Move(x, y));
+			final Move newMove = new Move(x, y);
+			if (!moves.contains(newMove)) {
+			    moves.add(newMove);
+			}
 		    }
 		    tttField.removeMark(x, y);
 		}
@@ -260,7 +335,10 @@ public class BotStarter {
 
 	// Center: A player marks the center.
 	if (tttField.isValidMove(1, 1)) {
-	    moves.add(new Move(1, 1));
+	    final Move newMove = new Move(1, 1);
+	    if (!moves.contains(newMove)) {
+		moves.add(newMove);
+	    }
 	}
 
 	// Opposite corner: If the opponent is in the corner, the player plays the opposite corner.
@@ -270,7 +348,10 @@ public class BotStarter {
 	    if (tttField.hasMark(corner.mX, corner.mY, oppId)) {
 		move = new Move(2 - corner.mX, 2 - corner.mY); // opposite corner
 		if (tttField.isValidMove(move.mX, move.mY)) {
-		    moves.add(new Move(move.mX, move.mY));
+		    final Move newMove = new Move(move.mX, move.mY);
+		    if (!moves.contains(newMove)) {
+			moves.add(newMove);
+		    }
 		}
 	    }
 	}
@@ -279,7 +360,10 @@ public class BotStarter {
 	for (int m = 0; m < cornerList.size(); m++) {
 	    corner = cornerList.get(m);
 	    if (tttField.isValidMove(corner.mX, corner.mY)) {
-		moves.add(new Move(corner.mX, corner.mY));
+		final Move newMove = new Move(corner.mX, corner.mY);
+		if (!moves.contains(newMove)) {
+		    moves.add(newMove);
+		}
 	    }
 	}
 
