@@ -18,8 +18,6 @@
 package bot;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -126,80 +124,7 @@ public class BotStarter {
 	}
 
 	localMove = localMoveList.get(0); // default option
-
-	if (localMoveList.size() > 1) { // multiple options
-	    System.err.println(localMoveList.toString());
-	    Move potentialMove;
-	    final TTTField nextField = new TTTField();
-	    // TODO: CLEAN THIS STUFF UP
-
-	    // look for moves that do not let enemy choose // TODO: is this a good priority?
-	    for (int m = 0; m < localMoveList.size(); m++) {
-		potentialMove = localMoveList.get(m);
-		nextField.setBoard(gameField.getMicroBoard(potentialMove.mX, potentialMove.mY)); // future board
-		final int mark = macroField.getMark(potentialMove.mX, potentialMove.mY);
-		if (mark < 1 && !nextField.isFull()) {
-		    // field is not won or tied, so no choosing for enemy
-		    System.err.println("No win or ties: " + potentialMove.mX + " " + potentialMove.mY);
-		    return translateMovetoGlobal(mx, my, potentialMove);
-		}
-	    }
-
-	    // look for winning moves
-	    for (int m = 0; m < localMoveList.size(); m++) {
-		potentialMove = localMoveList.get(m);
-		if (smallField.hasSomeInLine(myId, 2)) {
-		    // we can make three in a row here // TODO: is this a proper way to do this?
-		    System.err.println("Looks like winning: " + potentialMove.mX + " " + potentialMove.mY);
-		    return translateMovetoGlobal(mx, my, potentialMove);
-		}
-	    }
-
-	    // look for blocking moves
-	    for (int m = 0; m < localMoveList.size(); m++) {
-		potentialMove = localMoveList.get(m);
-		if (!smallField.hasSomeInLine(oppId, 2)) {
-		    // we can block three in a row here // TODO: is this a proper way to do this?
-		    System.err.println("Looks like blocking: " + potentialMove.mX + " " + potentialMove.mY);
-		    return translateMovetoGlobal(mx, my, potentialMove);
-		}
-	    }
-
-	    // we don't have a clue, so try to minimize opponent gain
-	    final List<Move> orderedMoves = new ArrayList<>();
-	    for (Move mv : localMoveList) {
-		orderedMoves.add(mv);
-	    }
-
-	    smallField.setBoard(gameField.getValidMacroBoard());
-	    System.err.println("Opponent macro view: ");
-	    final List<Move> oppMacroMoveList = getOrderedMoveList(smallField, oppId);
-	    // a lower position in the opposite list is bad news for us
-
-	    // TODO: do not play in quadrants that opponent can win or choose from
-	    Collections.sort(orderedMoves, new Comparator<Move>() {
-		@Override
-		public int compare(Move m1, Move m2) {
-		    final int idx1 = oppMacroMoveList.indexOf(m1);
-		    final int idx2 = oppMacroMoveList.indexOf(m2);
-
-		    // TODO: check validity
-		    if (Math.max(idx1, idx2) == idx1) {
-			return 1; // if m1 better than m2
-		    } else if (Math.max(idx1, idx2) == idx2) {
-			return -1; // if m1 worse than m2
-		    }
-		    return 0;
-		}
-
-	    });
-	    System.err.println(orderedMoves.toString());
-
-	    localMove = orderedMoves.get(0);
-	}
-
 	return translateMovetoGlobal(mx, my, localMove);
-
     }
 
     private Move getSafeMove(final TTTField currentField, final int myId, final int oppId) {
