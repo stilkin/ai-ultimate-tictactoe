@@ -18,6 +18,7 @@
 package bot;
 
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Field class
@@ -32,12 +33,9 @@ public class Field {
     private int mMoveNr;
     private int[][] mBoard;
     private int[][] mMacroboard;
-
     private final int COLS = 9, ROWS = 9;
     private String mLastError = "";
     private int mLastX = 0, mLastY = 0;
-    private Boolean mAllMicroboardsActive = true;
-    private int mActiveMicroboardX = 0, mActiveMicroboardY = 0;
 
     public Field() {
 	mBoard = new int[COLS][ROWS];
@@ -134,19 +132,11 @@ public class Field {
      *            :
      */
     public void parseMacroboardFromString(final String s) {
-	String[] r = s.split(",");
+	final String[] r = s.split(",");
 	int counter = 0;
-	mActiveMicroboardX = -1;
-	mActiveMicroboardY = -1;
-	mAllMicroboardsActive = true;
 	for (int y = 0; y < 3; y++) {
 	    for (int x = 0; x < 3; x++) {
 		mMacroboard[x][y] = Integer.parseInt(r[counter]);
-		if (mMacroboard[x][y] == -1) {
-		    mActiveMicroboardX = x;
-		    mActiveMicroboardY = y;
-		    mAllMicroboardsActive = false;
-		}
 		counter++;
 	    }
 	}
@@ -160,52 +150,16 @@ public class Field {
 	}
     }
 
-    public ArrayList<Move> getAvailableMoves() {
-	final ArrayList<Move> moves = new ArrayList<Move>();
-
-	if (getActiveMicroboardX() == -1) { /* Any microboard is available */
-	    for (int y = 0; y < ROWS; y++) {
-		for (int x = 0; x < COLS; x++) {
-		    int macroY = (int) y / 3;
-		    int macroX = (int) x / 3;
-		    if (mBoard[x][y] == 0 && mMacroboard[macroX][macroY] <= 0) {
-			moves.add(new Move(x, y));
-		    }
-		}
-	    }
-	} else {
-	    int startX = getActiveMicroboardX() * 3;
-	    int startY = getActiveMicroboardY() * 3;
-	    for (int y = startY; y < startY + 3; y++) {
-		for (int x = startX; x < startX + 3; x++) {
-		    if (mBoard[x][y] == 0) {
-			moves.add(new Move(x, y));
-		    }
+    public List<Move> getActiveMicroBoards() {
+	final ArrayList<Move> boards = new ArrayList<Move>();
+	for (int y = 0; y < 3; y++) {
+	    for (int x = 0; x < 3; x++) {
+		if (mMacroboard[x][y] == -1) {
+		    boards.add(new Move(x, y));
 		}
 	    }
 	}
-
-	return moves;
-    }
-
-    public Boolean isInActiveMicroboard(final int x, final int y) {
-	if (mAllMicroboardsActive) {
-	    return true;
-	}
-	return (Math.floor(x / 3) == getActiveMicroboardX() && Math.floor(y / 3) == getActiveMicroboardY());
-    }
-
-    public int getActiveMicroboardX() {
-	if (mAllMicroboardsActive)
-	    return -1;
-	return mActiveMicroboardX;
-
-    }
-
-    public int getActiveMicroboardY() {
-	if (mAllMicroboardsActive)
-	    return -1;
-	return mActiveMicroboardY;
+	return boards;
     }
 
     /**
